@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.coverage
+htmlcov/
+.pytest_cache/
+review-output.json
+review-text.txt
+.env
+.DS_Store
