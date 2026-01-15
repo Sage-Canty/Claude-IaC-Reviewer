@@ -75,3 +75,31 @@ class TerraformParser:
         if current_chunk["files"]:
             chunks.append(current_chunk)
         return chunks
+
+
+    def extract_resources(self, content: str) -> list[dict[str, Any]]:
+        """Extract resource blocks from Terraform content."""
+        import re as _re
+        resources = []
+        pattern = _re.compile(r'resource\s+"([^"]+)"\s+"([^"]+)"\s*\{', _re.MULTILINE)
+        for match in pattern.finditer(content):
+            resource_type = match.group(1)
+            resource_name = match.group(2)
+            start = match.start()
+            brace_depth = 0
+            end = start
+            for i, char in enumerate(content[start:], start=start):
+                if char == "{":
+                    brace_depth += 1
+                elif char == "}":
+                    brace_depth -= 1
+                    if brace_depth == 0:
+                        end = i + 1
+                        break
+            resources.append({
+                "type": resource_type,
+                "name": resource_name,
+                "content": content[start:end],
+                "is_security_sensitive": resource_type in SECURITY_SENSITIVE_RESOURCES,
+            })
+        return resources
