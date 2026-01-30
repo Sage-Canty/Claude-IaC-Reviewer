@@ -1,0 +1,72 @@
+name: Terraform Security Review
+
+on:
+  pull_request:
+    paths:
+      - "**.tf"
+
+jobs:
+  security-review:
+    name: AI Security Review
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run security review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python -m src.cli review --path . --output json --severity medium --no-fail > review-output.json 2>/dev/null || true
+          python -m src.cli review --path . --severity medium --no-fail > review-text.txt 2>/dev/null || true
+
+      - name: Post review to PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## Terraform Security Review\n\n';
+            try {
+              const out = JSON.parse(fs.readFileSync('review-output.json', 'utf8'));
+              if (out.total_findings === 0) {
+                body += 'No security issues found.\n';
+              } else {
+                body += `Found **${out.total_findings}** issue(s): `;
+                const s = out.summary;
+                if (s.critical) body += `Critical: ${s.critical} `;
+                if (s.high) body += `High: ${s.high} `;
+                if (s.medium) body += `Medium: ${s.medium}`;
+                const txt = fs.readFileSync('review-text.txt', 'utf8');
+                body += `\n\n<details><summary>Full report</summary>\n\n\`\`\`\n${txt}\n\`\`\`\n</details>`;
+              }
+            } catch(e) { body += 'Review could not be completed.\n'; }
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest tests/ -v
