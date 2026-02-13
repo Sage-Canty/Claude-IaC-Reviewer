@@ -39,3 +39,9 @@ resource "aws_iam_role_policy_attachment" "lambda_admin" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
+
+# S3 bucket with public ACL
+resource "aws_s3_bucket" "public" {
+  bucket = "my-public-data-bucket"
+  acl    = "public-read"
+}
