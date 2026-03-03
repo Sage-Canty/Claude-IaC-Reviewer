@@ -71,3 +71,13 @@ class TestTerraformParser:
         files = {"vars.tf": 'variable "x" {}', "iam.tf": SAMPLE_INSECURE}
         chunks = TerraformParser().chunk_for_analysis(files)
         assert "iam.tf" in list(chunks[0]["files"].keys())
+
+    def test_empty_file_returns_no_resources(self):
+        assert TerraformParser().extract_resources("# just a comment") == []
+
+    def test_collect_skips_test_tf_files(self, tmp_path):
+        (tmp_path / "main.tf").write_text(SAMPLE_SECURE)
+        (tmp_path / "main_test.tf").write_text("# test file")
+        result = TerraformParser().collect_files(tmp_path)
+        assert "main.tf" in result
+        assert "main_test.tf" not in result
