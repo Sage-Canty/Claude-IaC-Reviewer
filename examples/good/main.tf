@@ -55,3 +55,9 @@ resource "aws_db_instance" "secure" {
   storage_encrypted   = true
   deletion_protection = true
 }
+
+# Encrypted S3 with versioning
+resource "aws_s3_bucket_versioning" "secure" {
+  bucket = aws_s3_bucket.secure.id
+  versioning_configuration { status = "Enabled" }
+}
