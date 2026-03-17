@@ -103,3 +103,8 @@ class TerraformParser:
                 "is_security_sensitive": resource_type in SECURITY_SENSITIVE_RESOURCES,
             })
         return resources
+
+
+# Note: files exceeding MAX_CHUNK_SIZE are truncated.
+# This affects very large monolithic terraform files (>80k chars).
+# Split large files into modules to get complete analysis coverage.
