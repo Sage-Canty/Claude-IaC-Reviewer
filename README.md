@@ -84,3 +84,11 @@ make review-good
 5. Parses JSON findings, deduplicates, sorts by severity
 
 Static analysis only — does not execute Terraform or resolve variables.
+
+---
+
+## Limitations
+
+- Analyzes static config only — does not execute Terraform or resolve variable references
+- Very large repos may require multiple API calls
+- Complementary to tools like Checkov/tfsec, not a replacement
