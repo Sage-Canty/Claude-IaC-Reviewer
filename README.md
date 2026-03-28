@@ -1,4 +1,4 @@
-# terraform-security-review
+# Claude-IaC-Reviewer
 
 AI-powered security reviewer for Terraform configurations. Uses Claude to analyze IaC for misconfigurations, overly permissive IAM, missing encryption, exposed resources, and hardcoded secrets — with actionable remediation for each finding.
 
