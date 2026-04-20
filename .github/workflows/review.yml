@@ -21,12 +21,21 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: pip install -r requirements.txt
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Authenticate Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk auth $SNYK_TOKEN
 
       - name: Run security review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           python -m src.cli review --path . --output json --severity medium --no-fail > review-output.json 2>/dev/null || true
           python -m src.cli review --path . --severity medium --no-fail > review-text.txt 2>/dev/null || true
@@ -37,21 +46,24 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            let body = '## Terraform Security Review\n\n';
+            let body = '## 🔍 Terraform Security Review\n\n';
+            body += '_Two-layer analysis: Snyk IaC static scan + Claude synthesis_\n\n';
             try {
               const out = JSON.parse(fs.readFileSync('review-output.json', 'utf8'));
               if (out.total_findings === 0) {
-                body += 'No security issues found.\n';
+                body += '✅ No security issues found.\n';
               } else {
                 body += `Found **${out.total_findings}** issue(s): `;
-                const s = out.summary;
-                if (s.critical) body += `Critical: ${s.critical} `;
-                if (s.high) body += `High: ${s.high} `;
-                if (s.medium) body += `Medium: ${s.medium}`;
+                const s = out.summary || {};
+                if (s.critical) body += `🔴 Critical: ${s.critical} `;
+                if (s.high) body += `🟠 High: ${s.high} `;
+                if (s.medium) body += `🟡 Medium: ${s.medium}`;
                 const txt = fs.readFileSync('review-text.txt', 'utf8');
                 body += `\n\n<details><summary>Full report</summary>\n\n\`\`\`\n${txt}\n\`\`\`\n</details>`;
               }
-            } catch(e) { body += 'Review could not be completed.\n'; }
+            } catch(e) {
+              body += '⚠️ Review could not be completed.\n';
+            }
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
