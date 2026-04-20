@@ -1,8 +1,8 @@
 # Claude-IaC-Reviewer
 
-AI-powered security reviewer for Terraform configurations. Uses Claude to analyze IaC for misconfigurations, overly permissive IAM, missing encryption, exposed resources, and hardcoded secrets — with actionable remediation for each finding.
+IaC misconfigurations — public S3 buckets, overpermissioned IAM, unencrypted RDS — are the easiest class of cloud security failures to prevent and the most common to miss. They slip through because static analysis runs after the fact, findings land in a separate report nobody reads, and the feedback loop between "I wrote this Terraform" and "this will cause a security incident" is too long.
 
-Runs as a CLI tool locally or as a GitHub Actions step that posts findings directly to pull requests.
+This tool closes that loop. It runs Checkov static analysis and Snyk IaC scanning as a first pass, then sends findings to Claude for synthesis — structured, severity-ranked, with actionable remediation for each issue. Runs locally or as a GitHub Actions step that posts findings directly to the PR before merge.
 
 ---
 
@@ -46,7 +46,8 @@ python -m src.cli review --path . --no-fail
 
 ## GitHub Actions
 
-Posts findings as PR comments on any PR touching `.tf` files.
+Posts findings as PR comments on any PR touching `.tf` files — so the engineer who wrote the config sees the findings before it merges, not after it deploys.
+
 Requires `ANTHROPIC_API_KEY` secret in repository settings.
 
 ---
@@ -64,6 +65,19 @@ Requires `ANTHROPIC_API_KEY` secret in repository settings.
 
 ---
 
+## How it works
+
+1. Collects `.tf` files, skipping `.terraform` dirs
+2. Runs Checkov static analysis and Snyk IaC scan as first pass
+3. Prioritizes security-sensitive resources (IAM, S3, SGs) in first API call
+4. Chunks large configs to stay within context limits
+5. Sends findings to Claude for synthesis — structured, deduplicated, severity-ranked
+6. Parses JSON output, sorts by severity, generates remediation for each finding
+
+Static analysis only — does not execute Terraform or resolve variables.
+
+---
+
 ## Development
 
 ```bash
@@ -75,20 +89,8 @@ make review-good
 
 ---
 
-## How it works
-
-1. Collects `.tf` files, skipping `.terraform` dirs
-2. Prioritizes security-sensitive resources (IAM, S3, SGs) in first API call
-3. Chunks large configs to stay within context limits
-4. Sends to Claude with structured security review prompt
-5. Parses JSON findings, deduplicates, sorts by severity
-
-Static analysis only — does not execute Terraform or resolve variables.
-
----
-
 ## Limitations
 
-- Analyzes static config only — does not execute Terraform or resolve variable references
+- Analyzes static config only — does not resolve variable references at runtime
 - Very large repos may require multiple API calls
-- Complementary to tools like Checkov/tfsec, not a replacement
+- Complementary to Checkov and Snyk, not a replacement — the value is in synthesis and PR integration
