@@ -4,6 +4,8 @@ IaC misconfigurations — public S3 buckets, overpermissioned IAM, unencrypted R
 
 This tool closes that loop. It runs Checkov static analysis and Snyk IaC scanning as a first pass, then sends findings to Claude for synthesis — structured, severity-ranked, with actionable remediation for each issue. Runs locally or as a GitHub Actions step that posts findings directly to the PR before merge.
 
+![Demo](docs/demo.gif)
+
 ---
 
 ## Example output
@@ -75,6 +77,18 @@ Requires `ANTHROPIC_API_KEY` secret in repository settings.
 6. Parses JSON output, sorts by severity, generates remediation for each finding
 
 Static analysis only — does not execute Terraform or resolve variables.
+
+---
+
+## AWS Bedrock support
+
+AWS Bedrock is supported as a drop-in inference backend alongside the direct API — lets the tool run inside AWS-native environments using IAM-based model access with no API keys required.
+
+```bash
+export USE_BEDROCK=true
+export AWS_REGION=us-east-1
+python -m src.cli review --path ./terraform
+```
 
 ---
 
